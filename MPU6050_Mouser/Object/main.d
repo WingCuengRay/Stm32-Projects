@@ -1,0 +1,39 @@
+.\Object\main.o: User\main.c
+.\Object\main.o: User\stm32f10x.h
+.\Object\main.o: .\Core\core_cm3.h
+.\Object\main.o: E:\Program Files\Keil\ARM\ARMCC\bin\..\include\stdint.h
+.\Object\main.o: User\system_stm32f10x.h
+.\Object\main.o: User\stm32f10x_conf.h
+.\Object\main.o: .\STM32F10x_FWLib\inc\stm32f10x_adc.h
+.\Object\main.o: .\User\stm32f10x.h
+.\Object\main.o: .\STM32F10x_FWLib\inc\stm32f10x_bkp.h
+.\Object\main.o: .\STM32F10x_FWLib\inc\stm32f10x_can.h
+.\Object\main.o: .\STM32F10x_FWLib\inc\stm32f10x_cec.h
+.\Object\main.o: .\STM32F10x_FWLib\inc\stm32f10x_crc.h
+.\Object\main.o: .\STM32F10x_FWLib\inc\stm32f10x_dac.h
+.\Object\main.o: .\STM32F10x_FWLib\inc\stm32f10x_dbgmcu.h
+.\Object\main.o: .\STM32F10x_FWLib\inc\stm32f10x_dma.h
+.\Object\main.o: .\STM32F10x_FWLib\inc\stm32f10x_exti.h
+.\Object\main.o: .\STM32F10x_FWLib\inc\stm32f10x_flash.h
+.\Object\main.o: .\STM32F10x_FWLib\inc\stm32f10x_fsmc.h
+.\Object\main.o: .\STM32F10x_FWLib\inc\stm32f10x_gpio.h
+.\Object\main.o: .\STM32F10x_FWLib\inc\stm32f10x_i2c.h
+.\Object\main.o: .\STM32F10x_FWLib\inc\stm32f10x_iwdg.h
+.\Object\main.o: .\STM32F10x_FWLib\inc\stm32f10x_pwr.h
+.\Object\main.o: .\STM32F10x_FWLib\inc\stm32f10x_rcc.h
+.\Object\main.o: .\STM32F10x_FWLib\inc\stm32f10x_rtc.h
+.\Object\main.o: .\STM32F10x_FWLib\inc\stm32f10x_sdio.h
+.\Object\main.o: .\STM32F10x_FWLib\inc\stm32f10x_spi.h
+.\Object\main.o: .\STM32F10x_FWLib\inc\stm32f10x_tim.h
+.\Object\main.o: .\STM32F10x_FWLib\inc\stm32f10x_usart.h
+.\Object\main.o: .\STM32F10x_FWLib\inc\stm32f10x_wwdg.h
+.\Object\main.o: .\STM32F10x_FWLib\inc\misc.h
+.\Object\main.o: User\IIC_Simulation.h
+.\Object\main.o: User\USART_Serial.h
+.\Object\main.o: E:\Program Files\Keil\ARM\ARMCC\bin\..\include\stdio.h
+.\Object\main.o: User\MPU6050.h
+.\Object\main.o: E:\Program Files\Keil\ARM\ARMCC\bin\..\include\math.h
+.\Object\main.o: .\User\MotionDriver\inv_mpu.h
+.\Object\main.o: .\User\MotionDriver\inv_mpu_dmp_motion_driver.h
+.\Object\main.o: .\User\I2C\i2c.h
+.\Object\main.o: .\User\clock\clock.h

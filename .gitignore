@@ -30,3 +30,29 @@
 
 # Debug files
 *.dSYM/
+
+# Keil
+*.bak
+*.ini
+*.uvopt
+*.uvproj
+*.Ray
+*.Administrator
+*.dep
+
+# Specific Files
+*6-axis_IIC
+*6-axis+Communication
+*InfraredLaunch_ZE
+*InfraredReceive_RB
+*Karman_Smoothing_Example
+*Karman_Transplant_Test
+*Laser_Engraving_Machine
+*MotionDriver_DMP
+*stm32 Module
+*Template2.0
+*Template3.5_RB
+*Template3.5_ZE
+*test_6-axis
+*UM0427
+*ZET6
