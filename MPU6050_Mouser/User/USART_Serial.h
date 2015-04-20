@@ -58,6 +58,12 @@
 extern void USART_Configuration();
 extern void USART_GPIO_Configuration();
 
+void USART_SendByte(uint8_t ch);
+void UART1_ReportMotion(int16_t ax,int16_t ay,int16_t az,int16_t gx,int16_t gy,int16_t gz,
+					int16_t hx,int16_t hy,int16_t hz);
+void Wait_Respond(u32 timeOut);	
+
+
 
 /**************************************************************
 *	End-Multi-Include-Prevent Section

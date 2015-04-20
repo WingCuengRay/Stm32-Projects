@@ -14,7 +14,7 @@
  *--------------------------------Revision History--------------------------------------
  *	No	version		Data			Revised By			Item			Description
  *	1		v1.0								Ray												Create this file
- *	2   v2.0			2015/4/13 Ray												添加了DMP模块和坐标系转换
+ *	2   v2.0			2015/4/13 Ray												添加了DMP模块采集角度
  *
  ***************************************************************************************/
 
@@ -39,6 +39,7 @@
 #include "inv_mpu_dmp_motion_driver.h"
 #include "i2c.h"
 #include "clock.h"
+#include "delay.h"
 
 /**************************************************************
 *	Macro Define Section
@@ -59,6 +60,14 @@ printf("%s",no_bug);}
 /**************************************************************
 *	Struct Define Section
 **************************************************************/
+typedef struct
+{
+	uint8_t PressKey;
+	uint8_t OffsetX;
+	uint8_t OffsetY;
+	uint8_t OffsetWheel;
+	uint8_t Check;
+}Mouse,*pMouse;
 
 
 /**************************************************************
@@ -69,10 +78,14 @@ extern void TIM2_Configuration();
 
 void USART_SendByte(uint8_t ch);
 
-void UART1_ReportIMU(int16_t yaw,int16_t pitch,int16_t roll,int16_t alt,int16_t tempr,int16_t press,int16_t IMUpersec);
-void UART1_ReportMotion(int16_t ax,int16_t ay,int16_t az,int16_t gx,int16_t gy,int16_t gz,int16_t hx,int16_t hy,int16_t hz);
 
 void DMP_Init(signed char gyro_orientation[],struct int_param_s *int_param);
+void acc_filter(int16_t accel[3],int16_t acc_ave[3]);
+void acc_convert(float accel_res[3],int16_t accel[3],float q[4]);
+
+void USART_Send_Frame(pMouse p);
+void Get_Frame(pMouse p);
+void Start_Singal_Check();
 
 
 /**************************************************************
@@ -100,8 +113,14 @@ int main(void)
 	unsigned char more;
 	int16_t gyro[3], accel[3],acc_ave[3];
 	unsigned long timestamp,time_pre;
+	float accel_res[3],accel_final[3];
+	float q[4];
+
+	Mouse MouseType;
+	int16_t accel_show[3];
 
 	SystemInit();
+	delay_init(72);
 	clock_conf();
 	IIC_GPIO_Configuration();
 	USART_GPIO_Configuration();
@@ -115,18 +134,69 @@ int main(void)
 // 	TIM2_Configuration();
 	
 	
-	dmp_read_fifo(gyro,accel,quat,&time_pre,&sensors,&more);
+	dmp_read_fifo(gyro,accel,quat,&time_pre,&sensors,&more);	
+	Start_Singal_Check();
+	MouseType.PressKey = 0x00;
+	MouseType.OffsetX = 0x00;
+	MouseType.OffsetY = 0x00;
+	MouseType.OffsetWheel = 0x00;
 	while(1)
 	{
-		//GetAccel();
 		//MovementEndCheck();
 		dmp_read_fifo(gyro,accel,quat,&timestamp,&sensors,&more);
+		q[0]=quat[0] / 1073741824.0f;
+    q[1]=quat[1] / 1073741824.0f;
+    q[2]=quat[2] / 1073741824.0f;
+    q[3]=quat[3] / 1073741824.0f;
 		
-		UART1_ReportMotion(accel[0],accel[1],accel[2],gyro[0],gyro[1],gyro[2],0,0,0);
-		//UART1_ReportMotion((int16_t)(VelocityType.VelocityY[1] >> 14),(int16_t)(DpmType.DpmY[1] >> 14),2,0,0,0,0,0,0);
-//		UART1_ReportMotion((int16_t)AccelType.AccelX[1],1,2,0,0,0,0,0,0);
-//		UART1_ReportMotion(AccelType.AccelX[0],AccelType.AccelY[0],AccelType.AccelZ[0],gx,gy,gz,0,0,0);
+		acc_filter(accel,acc_ave);
+		acc_convert(accel_res,accel,q);
+// 		accel_final[0] = accel_res[0]/16384.0*100;
+// 		accel_final[1] = accel_res[1]/16384.0*100;
+//     accel_final[2] = (accel_res[2]/16384.0-0.978833)*100;
+
+// 	 accel_show [0] = accel_final[0];  
+// 	 accel_show [1] = accel_final[1];  
+// 	 accel_show [2] = accel_final[2]; 
+// 		
+		accel_show [0] = accel_res[0];  
+		accel_show [1] = accel_res[1];  
+		accel_show [2] = accel_res[2];  
+
+		//UART1_ReportMotion(acc_ave[0],acc_ave[1],acc_ave[2],gyro[0],gyro[1],gyro[2],0,0,0);		
+		//UART1_ReportMotion(accel_show[0],accel_show[1],accel_show[2],gyro[0],gyro[1],gyro[2],0,0,0);		
+		
+		
+		
+		if(gyro[0] >= 15000)
+		{
+
+			MouseType.PressKey = 0x01;
+			Get_Frame(&MouseType);
+			USART_Send_Frame(&MouseType);
+			Wait_Respond(1000);
+ //			delay_nms(1);
 			
+			MouseType.PressKey = 0x00;
+			Get_Frame(&MouseType);
+			USART_Send_Frame(&MouseType);
+			Wait_Respond(1000);
+		}
+		else if (gyro[0] <= -15000)
+		{	
+			MouseType.PressKey = 0x02;
+			Get_Frame(&MouseType);
+			Get_Frame(&MouseType);
+			USART_Send_Frame(&MouseType);
+			Wait_Respond(1000);
+// 			delay_nms(1);
+			
+			MouseType.PressKey = 0x00;
+			Get_Frame(&MouseType);
+			USART_Send_Frame(&MouseType);
+			Wait_Respond(1000);
+			
+		}
 	}
 
 
@@ -134,19 +204,8 @@ int main(void)
 }
 
 
-/**
- *  @name					void USART_SendByte(uint8_t ch)		
- *	@description	通过串口1发送一个字节的数据
- *	@param			
- *	@return		
- *  @notice
- */
-void USART_SendByte(uint8_t ch)
-{
-		USART_SendData(USART1,ch);
-		while(USART_GetFlagStatus(USART1,USART_FLAG_TC) == RESET)
-			;
-}
+
+
 
 
 
@@ -188,6 +247,26 @@ void DMP_Init(signed char gyro_orientation[],struct int_param_s *int_param)
 }
 
 
+void acc_convert(float accel_res[3],int16_t accel[3],float q[4])
+{
+    accel_res[0]    = (q[0]*q[0] + q[1]*q[1] - q[2]*q[2] - q[3]*q[3])	*accel[0] + (2*q[1]*q[2]-2*q[0]*q[3])	                        *accel[1]	+(2*q[0]*q[2]+2*q[1]*q[3])                          *accel[2];
+    accel_res[1]	= (2*q[0]*q[3]+2*q[1]*q[2])					        *accel[0] + (q[0]*q[0] - q[1]*q[1] + q[2]*q[2] - q[3]*q[3])	    *accel[1]   +(-2*q[0]*q[1]+2*q[2]*q[3])                         *accel[2];
+    accel_res[2]	= (2*q[1]*q[3]-2*q[0]*q[2])							*accel[0] + (2*q[0]*q[1]+2*q[2]*q[3])                           *accel[1]	+(q[0]*q[0] - q[1]*q[1] - q[2]*q[2] + q[3]*q[3])	*accel[2];
+}
+
+
+#define ACC_FILTER_MOUNT	1
+int16_t	acc_xyz_data[3][ACC_FILTER_MOUNT] = {0};
+int16_t	acc_data_index = 0;
+int32_t	acc_data_sum[3] ={0};
+
+/* 对原始数据加速度值进行滤波 */
+void acc_filter(int16_t accel[3],int16_t acc_ave[3])
+{
+
+}
+
+
 
 
 int fputc(int ch,FILE *f)
@@ -200,211 +279,98 @@ int fputc(int ch,FILE *f)
 }
 
 
+/**
+*     @name               uint8 getCheckCode(uint8 *buf)
+*     @description     生成4位数据的校验码
+*     @param               buf【buffer】保存数据的内存空间的基地址
+*     @return               校验码
+*/
+static uint8_t validateDatas(uint8_t *buf){
+    
+     uint8_t i, j;
+     uint8_t temp      = 0x00;
+     uint8_t result     = 0x00;
+    
+     for(i=0; i<4; i++){
+         
+          result = 0x00;
+          for(j=0; j<8; j++){
+               result = ((buf[i]<<j)&0x80)^result;
+          }
+          temp >>= 1;
+          temp += result;
+          temp >>= 1;
+          temp += (~result)&0x80;
+     }
+    
+     return temp;
+}// */
 
 
-/**************************实现函数********************************************
-*函数原型:		void UART1_Put_Char(unsigned char DataToSend)
-*功　　能:		RS232发送一个字节
-输入参数：
-		unsigned char DataToSend   要发送的字节数据
-输出参数：没有	
-*******************************************************************************/
-void UART1_Put_Char(unsigned char DataToSend)
+/**
+ *  @name					void Get_Frame(pMouse p)
+ *	@description	得到帧里的具体数据，由用户自定义
+ *	@param			
+ *	@return		
+ *  @notice
+ */
+void Get_Frame(pMouse p)
 {
-	//将要发送的字节写到UART1的发送缓冲区
-	USART_SendData(USART1, (unsigned char) DataToSend);
-	//等待发送完成
-  	while (!(USART1->SR & USART_FLAG_TXE));
+		uint8_t buf[4];
+	
+	//生成校验字节
+		buf[0] = p->PressKey;
+		buf[1] = p->OffsetX;
+		buf[2] = p->OffsetY;
+		buf[3] = p->OffsetWheel;
+		p->Check = validateDatas(buf);
+	
+		return;
 }
 
-/**************************实现函数********************************************
-*函数原型:		void UART1_ReportIMU(int16_t yaw,int16_t pitch,int16_t roll
-				,int16_t alt,int16_t tempr,int16_t press)
-*功　　能:		向上位机发送经过解算后的姿态数据
-输入参数：
-		int16_t yaw 经过解算后的航向角度。单位为0.1度 0 -> 3600  对应 0 -> 360.0度
-		int16_t pitch 解算得到的俯仰角度，单位 0.1度。-900 - 900 对应 -90.0 -> 90.0 度
-		int16_t roll  解算后得到的横滚角度，单位0.1度。 -1800 -> 1800 对应 -180.0  ->  180.0度
-		int16_t alt   气压高度。 单位0.1米。  范围一个整型变量
-		int16_t tempr 温度 。 单位0.1摄氏度   范围：直到你的电路板不能正常工作
-		int16_t press 气压压力。单位10Pa  一个大气压强在101300pa 这个已经超过一个整型的范围。需要除以10再发给上位机
-		int16_t IMUpersec  姿态解算速率。运算IMUpersec每秒。
-输出参数：没有	
-*******************************************************************************/
-void UART1_ReportIMU(int16_t yaw,int16_t pitch,int16_t roll
-,int16_t alt,int16_t tempr,int16_t press,int16_t IMUpersec)
+
+/**
+ *  @name					void USART_Send_Frame(pMouse p)
+ *	@description	发送一帧的数据，帧里的数据由结构体 Mouse定义
+ *	@param				p  ----  pMouse，Mouse结构体的指针	
+ *	@return		
+ *  @notice
+ */
+void USART_Send_Frame(pMouse p)
 {
- 	unsigned int temp=0xaF+2+2;
-	char ctemp;
-	UART1_Put_Char(0xa5);
-	UART1_Put_Char(0x5a);
-	UART1_Put_Char(14+2);
-	UART1_Put_Char(0xA1);
+		USART_SendByte(p->PressKey);
+		USART_SendByte(p->OffsetX);
+		USART_SendByte(p->OffsetY);
+		USART_SendByte(p->OffsetWheel);
+		USART_SendByte(p->Check);
+		
+		return;
+}
 
-	if(yaw<0)yaw=32768-yaw;
-	ctemp=yaw>>8;
-	UART1_Put_Char(ctemp);
-	temp+=ctemp;
-	ctemp=yaw;
-	UART1_Put_Char(ctemp);
-	temp+=ctemp;
 
-	if(pitch<0)pitch=32768-pitch;
-	ctemp=pitch>>8;
-	UART1_Put_Char(ctemp);
-	temp+=ctemp;
-	ctemp=pitch;
-	UART1_Put_Char(ctemp);
-	temp+=ctemp;
-
-	if(roll<0)roll=32768-roll;
-	ctemp=roll>>8;
-	UART1_Put_Char(ctemp);
-	temp+=ctemp;
-	ctemp=roll;
-	UART1_Put_Char(ctemp);
-	temp+=ctemp;
-
-	if(alt<0)alt=32768-alt;
-	ctemp=alt>>8;
-	UART1_Put_Char(ctemp);
-	temp+=ctemp;
-	ctemp=alt;
-	UART1_Put_Char(ctemp);
-	temp+=ctemp;
-
-	if(tempr<0)tempr=32768-tempr;
-	ctemp=tempr>>8;
-	UART1_Put_Char(ctemp);
-	temp+=ctemp;
-	ctemp=tempr;
-	UART1_Put_Char(ctemp);
-	temp+=ctemp;
-
-	if(press<0)press=32768-press;
-	ctemp=press>>8;
-	UART1_Put_Char(ctemp);
-	temp+=ctemp;
-	ctemp=press;
-	UART1_Put_Char(ctemp);
-	temp+=ctemp;
-	
-	ctemp=IMUpersec>>8;
-	UART1_Put_Char(ctemp);
-	temp+=ctemp;
-	ctemp=IMUpersec;
-	UART1_Put_Char(ctemp);
-	temp+=ctemp;
-	
-	UART1_Put_Char(temp%256);
-	UART1_Put_Char(0xaa);
+/**
+ *  @name							void Start_Singal_Check()
+ *	@description			与USB握手的信号检测
+ *	@param			
+ *	@return		
+ *  @notice
+ */
+void Start_Singal_Check()
+{
+	while(1)
+	{
+		while(USART_GetFlagStatus(USART1,USART_FLAG_RXNE) == RESET)
+			;
+		if(USART_ReceiveData(USART1) == 0x66)
+		{
+			USART_SendByte(0x77);
+			break;
+		}
+	}
 }
 
 
 
-
-/**************************实现函数********************************************
-*函数原型:		void UART1_ReportMotion(int16_t ax,int16_t ay,int16_t az,int16_t gx,int16_t gy,int16_t gz,
-					int16_t hx,int16_t hy,int16_t hz)
-*功　　能:		向上位机发送当前传感器的输出值
-输入参数：
-	int16_t ax  加速度 X轴ADC输出 范围 ：一个有符号整型
-	int16_t ay  加速度 Y轴ADC输出 范围 ：一个有符号整型
-	int16_t az  加速度 Z轴ADC输出 范围 ：一个有符号整型
-	int16_t gx  陀螺仪 X轴ADC输出 范围 ：一个有符号整型
-	int16_t gy  陀螺仪 Y轴ADC输出 范围 ：一个有符号整型
-	int16_t gz  陀螺仪 Z轴ADC输出 范围 ：一个有符号整型
-	int16_t hx  磁罗盘 X轴ADC输出 范围 ：一个有符号整型
-	int16_t hy  磁罗盘 Y轴ADC输出 范围 ：一个有符号整型
-	int16_t hz  磁罗盘 Z轴ADC输出 范围 ：一个有符号整型
-	
-输出参数：没有	
-*******************************************************************************/
-void UART1_ReportMotion(int16_t ax,int16_t ay,int16_t az,int16_t gx,int16_t gy,int16_t gz,
-					int16_t hx,int16_t hy,int16_t hz)
-{
- 	unsigned int temp=0xaF+9;
-	char ctemp;
-	UART1_Put_Char(0xa5);
-	UART1_Put_Char(0x5a);
-	UART1_Put_Char(14+8);
-	UART1_Put_Char(0xA2);
-
-	if(ax<0)ax=32768-ax;
-	ctemp=ax>>8;
-	UART1_Put_Char(ctemp);
-	temp+=ctemp;
-	ctemp=ax;
-	UART1_Put_Char(ctemp);
-	temp+=ctemp;
-
-	if(ay<0)ay=32768-ay;
-	ctemp=ay>>8;
-	UART1_Put_Char(ctemp);
-	temp+=ctemp;
-	ctemp=ay;
-	UART1_Put_Char(ctemp);
-	temp+=ctemp;
-
-	if(az<0)az=32768-az;
-	ctemp=az>>8;
-	UART1_Put_Char(ctemp);
-	temp+=ctemp;
-	ctemp=az;
-	UART1_Put_Char(ctemp);
-	temp+=ctemp;
-
-	if(gx<0)gx=32768-gx;
-	ctemp=gx>>8;
-	UART1_Put_Char(ctemp);
-	temp+=ctemp;
-	ctemp=gx;
-	UART1_Put_Char(ctemp);
-	temp+=ctemp;
-
-	if(gy<0)gy=32768-gy;
-	ctemp=gy>>8;
-	UART1_Put_Char(ctemp);
-	temp+=ctemp;
-	ctemp=gy;
-	UART1_Put_Char(ctemp);
-	temp+=ctemp;
-//-------------------------
-	if(gz<0)gz=32768-gz;
-	ctemp=gz>>8;
-	UART1_Put_Char(ctemp);
-	temp+=ctemp;
-	ctemp=gz;
-	UART1_Put_Char(ctemp);
-	temp+=ctemp;
-
-	if(hx<0)hx=32768-hx;
-	ctemp=hx>>8;
-	UART1_Put_Char(ctemp);
-	temp+=ctemp;
-	ctemp=hx;
-	UART1_Put_Char(ctemp);
-	temp+=ctemp;
-
-	if(hy<0)hy=32768-hy;
-	ctemp=hy>>8;
-	UART1_Put_Char(ctemp);
-	temp+=ctemp;
-	ctemp=hy;
-	UART1_Put_Char(ctemp);
-	temp+=ctemp;
-
-	if(hz<0)hz=32768-hz;
-	ctemp=hz>>8;
-	UART1_Put_Char(ctemp);
-	temp+=ctemp;
-	ctemp=hz;
-	UART1_Put_Char(ctemp);
-	temp+=ctemp;
-
-	UART1_Put_Char(temp%256);
-	UART1_Put_Char(0xaa);
-}
 
 
 /**
