@@ -39,6 +39,8 @@
 *.Ray
 *.Administrator
 *.dep
+*Object
+*List
 
 # Specific Files
 *6-axis_IIC
@@ -56,3 +58,6 @@
 *test_6-axis
 *UM0427
 *ZET6
+
+
+
