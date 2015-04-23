@@ -133,6 +133,7 @@ void Infrared_Send()
 			TIM_Cmd(TIM2,ENABLE);
 			delay_us(PulseTab[i]);
 			TIM_Cmd(TIM2,DISABLE);
+			GPIO_SetBits(GPIOA,GPIO_Pin_0);
 		}
 		else
 		{
