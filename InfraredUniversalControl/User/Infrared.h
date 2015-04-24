@@ -50,6 +50,9 @@
 
 #define IR_RDATA PAin(1)			//红外数据输入脚
 
+#define INFRARED_RECEIVE
+#define INFRARED_SEND
+
 
 /**************************************************************
 *	Struct Define Section
@@ -61,12 +64,15 @@
 /**************************************************************
 *	Prototype Declare Section
 **************************************************************/
+extern u8 Flag_LearnState;
+extern u16 PulseTab[MAX_PULSE_LEN];
+
+//Functions for Receive
 void Infrared_GPIO_Configuration();
 void Infrared_EXTI_Configuration();
 
-
-extern u8 Flag_LearnState;
-extern u16 PulseTab[MAX_PULSE_LEN];
+//Functions for Send
+void TIM2_PWM_Init(u16 arr,u16 psc);
 void Infrared_Send();
 /**************************************************************
 *	End-Multi-Include-Prevent Section
