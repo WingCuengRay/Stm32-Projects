@@ -46,7 +46,6 @@ Function explanation
  *	@param					
  *	@return		
  *  @notice				若改变外部中断的输入端，此函数内的线路设置也需改变
- 			
 *******************
 
  *  @name				void EXTI1_IRQHandler()
@@ -58,7 +57,7 @@ Function explanation
 *******************
 
 ###**Infrared For Send**
-*******************
+****************
 
  *  @name				void TIM2_PWM_Init(u16 arr,u16 psc)
  *	@description		初始化定时器2的设置，将定时器2用于PWM调制，PWM输出口为 PA.0
@@ -66,6 +65,7 @@ Function explanation
 						psc --	u16,定时器分频值							
  *	@return		
  *  @notice				PWM频率 = 72M/((arr+1)*(psc+1)),这里用作红外发射的载波，需要生成38kHz的方波，故取arr = 1895,psc = 0。
+
 
 *******************
 
@@ -76,8 +76,6 @@ Function explanation
  *  @notice
 
 *******************
-
-
 
 Example
 ---------
