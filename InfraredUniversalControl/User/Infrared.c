@@ -124,9 +124,9 @@ void Infrared_EXTI_Configuration()
  */
 void Infrared_Send()
 {
-	u8 i;
+	u16 i;
 	
-	for(i=0; i<100 && PulseTab[i]!=0xffff; i++)
+	for(i=0; i<MAX_PULSE_LEN && PulseTab[i]!=0xffff; i++)
 	{
 		if(i%2 == 0)
 		{
@@ -156,7 +156,7 @@ void Infrared_Send()
 void EXTI1_IRQHandler()
 {
 	u16 pulseWidth = 0;
-	u8 i = 0;
+	u16 i = 0;
 	Flag_LearnState = 0;
 	
 	//中断指示
@@ -174,7 +174,7 @@ void EXTI1_IRQHandler()
 					break;
 			}
 			
-			if(pulseWidth<=15 || pulseWidth>=2000)		// >40us || <300us 则结束记录
+			if(pulseWidth<=15 || pulseWidth>=2000)		// >40ms || <300us 则结束记录
 				break;
 			PulseTab[i] = pulseWidth*20;
 			i++;
@@ -193,6 +193,7 @@ void EXTI1_IRQHandler()
 			i++;		
 		}
 	}
+	PulseTab[i++] = pulseWidth;
 	PulseTab[i] = 0xffff;
 	
 	Flag_LearnState = 1;

@@ -14,6 +14,7 @@
  *--------------------------------Revision History--------------------------------------
  *	No	version		Data		Revised By			Item			Description
  *	1		v1.0							Ray												Create this file
+ *	2		v2.0			2015/4/23	Ray											Sucessfully control the air conditioner
  *
  ***************************************************************************************/
 
@@ -44,6 +45,7 @@
 /**************************************************************
 *	Prototype Declare Section
 **************************************************************/
+void Launch_AirConditioner();
 
 
 /**************************************************************
@@ -80,7 +82,8 @@ int main(void)
 		{
 			EXTI_InitType.EXTI_LineCmd = DISABLE;
 			EXTI_Init(&EXTI_InitType);
-			Infrared_Send();
+			//Infrared_Send();
+			Launch_AirConditioner();
 			EXTI_InitType.EXTI_LineCmd = ENABLE;
 			EXTI_Init(&EXTI_InitType);
 		}
@@ -88,6 +91,14 @@ int main(void)
 
 
 	return 0;
+}
+
+
+void Launch_AirConditioner()
+{
+	Infrared_Send();
+//	delay_us(4500);
+	//Infrared_Send();
 }
 /**
  *  @name
